@@ -1,0 +1,96 @@
+<html>
+
+<head>
+  <title>渐进实现vuex</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <!-- <script src="https://unpkg.com/vuex@3.1.0/dist/vuex.js"></script> -->
+  <script>
+    /**
+    * Vuex工厂函数
+    * @param {object} options 实例化参数
+    */
+    function Vuex(options) {
+      //实例化一个 Vue对象 将state的数据与DOM进行双向绑定 主要是给state 添加了 Object.defineProperty
+      new Vue({
+        data:{
+          a:options.state
+        }
+      })
+      this.state = options.state || {};
+      this.mutations = options.mutations || {};
+    }
+    /**
+    * Vuex commit方法 触发 mutation
+    * @param {string} mutationName 触发mutation方法的名字
+    * @param {string} mutationArgument 传入mutation方法的参数
+    */
+    Vuex.prototype.commit = function (mutationName, mutationArgument) {
+      this.mutations[mutationName](this.state, mutationArgument)
+    }
+    //实例化 Vuex 生成一个对象
+    var store = new Vuex({
+      state: {
+        userName: 'cmf',
+        count: 0
+      },
+      mutations: {
+        handleAddCount: function (state, num) {
+          state.count +=99;
+        }
+      }
+    })
+    /** 
+    * Vue插件函数 vue.use({install:function(){}}) 会触发
+    * @param {object} Vue Vue对象
+    */
+    function install(Vue) {
+      Vue.mixin({ //注入全局组件
+        beforeCreate: function () { //所有组件的 beforeCreate 函数都会触发这里面的方法
+          Vue.prototype.$store = store; //将实例化的store赋值给Vue.prototype，这样在所以组件里面都可以通过 this.$store获取实例化的对象
+        },
+      })
+    }
+    // 使用Vue插件 插件使用地址 https://cn.vuejs.org/v2/guide/plugins.html
+    Vue.use({
+      install: install
+    })
+  </script>
+  <style>
+    #app {
+      font-size: 24px;
+
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    来自store里面的count {{$store.state.count}}
+    <div>
+      触发mutation方法 <button @click="handleAdd">增加</button>
+    </div>
+  </div>
+  <script>
+
+    new Vue({
+      el: "#app",
+      data: {
+        count: 999
+      },
+      computed: {
+      },
+      methods: {
+        handleAdd() {
+          this.$store.commit('handleAddCount', 999)
+          console.log(this.$store)
+        }
+      },
+      created() {
+        this.count = this.$store.state.count;
+        console.log(this.$store)
+      },
+    })
+  </script>
+</body>
+
+</html>

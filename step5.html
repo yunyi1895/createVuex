@@ -1,0 +1,190 @@
+<html>
+
+<head>
+  <title>渐进实现vuex</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <script>
+    /**
+    * Vuex工厂函数
+    * @param {object} options 实例化参数
+    */
+    function Vuex(options) {
+      //实例化一个 Vue对象 将state的数据与DOM进行双向绑定 主要是给state 添加了 Object.defineProperty
+      this._vm=new Vue({
+        data:{
+          state:options.state
+        }
+      })
+      this.createdState();
+      this.state = options.state || {};
+      this.mutations = options.mutations || {};
+      this.gettersFun=options.getters||{};
+      this.actions=options.actions||{}
+      this.createdGetters(options.getters||{});
+    }
+    /**
+    * Vuex commit方法 触发 mutation
+   * @param {string} mutationName 触发mutation方法的名字
+    * @param {string} mutationArgument 传入mutation方法的参数
+    */
+    Vuex.prototype.commit = function (mutationName, mutationArgument) {
+      this.mutations[mutationName](this.state, mutationArgument)
+    }
+     /**
+    * Vuex dispatch方法 触发 Actions
+     * @param {string} actionName 触发action方法的名字
+    * @param {string} actionArgument 传入action方法的参数
+    */
+    Vuex.prototype.dispatch = function (actionName, actionArgument) {
+      if(this.actions[actionName]==undefined) return console.error('没有相关action:'+actionName)
+      return this.actions[actionName](this, actionArgument)
+    }
+      /**
+    * Vuex 创建this.getters 并且监控this.getters 
+    * @param {string} getters options参数的getters
+    */
+    Vuex.prototype.createdGetters = function (getters) {
+      this.getters={};
+      var vm=this;
+      for(var key in getters){
+        // 为this.getters添加监控信息
+        Object.defineProperty(this.getters,key,{
+          enumerable: true,
+          get:function(){
+            console.log('触发了getters')
+            return getters[key](vm.state)
+          }
+        })
+      }
+    }
+    /**
+    * Vuex createdState方法将Vue实例里面的state赋值给vuex里面的statet
+    */
+    Vuex.prototype.createdState=function(){
+      this.state=this._vm._data.state
+    }
+
+
+
+   
+
+    //实例化 Vuex 生成一个对象
+    var store = new Vuex({
+     
+      state: {
+        userName: 'cmf',
+        count: 1
+      },
+      mutations: {
+        handleAddCount: function (state, num) {
+          state.count +=2 ;
+        }
+      },
+      getters:{
+        getCount:function(state){
+          return state.count
+        }
+      },
+      actions:{
+        newPromise(operation,timeOut){
+          return new Promise(function(resolve,reject){
+            setTimeout(function(){
+              if(Math.random()>0.5){
+                resolve(true)
+              }else{
+                resolve(false)
+              }
+            },timeOut)
+          })
+        },
+        handleAsyncAddCount: async function(operation,data){
+          let res=await operation.dispatch('newPromise',1000);
+          console.log(res)
+          console.log('触发了action')
+          operation.commit('handleAddCount')
+        }
+      }
+    })
+    
+    function mapGetters(getters){
+      var res={};
+      console.log(store)
+      getters.forEach(element => {
+        if(store.getters[element]){
+          res[element]=function(){
+            return store.getters[element]
+          }
+        }
+      });
+      return res;
+    }
+
+    function mapActions(actions){
+      var res={};
+      actions.forEach(element =>{
+        res[element]=function(argument){
+          return store.dispatch(element,argument);
+        }
+      })
+      return res;
+    }
+    
+    /** 
+    * Vue插件函数 vue.use({install:function(){}}) 会触发
+    * @param {object} Vue Vue对象
+    */
+    function install(Vue) {
+      Vue.mixin({ //注入全局组件
+        beforeCreate: function () { //所有组件的 beforeCreate 函数都会触发这里面的方法
+          
+          Vue.prototype.$store = store; //将实例化的store赋值给Vue.prototype，这样在所以组件里面都可以通过 this.$store获取实例化的对象
+        },
+      })
+    }
+    // 使用Vue插件 插件使用地址 https://cn.vuejs.org/v2/guide/plugins.html
+    Vue.use({
+      install: install
+    })
+  </script>
+  <style>
+    #app {
+      font-size: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    通过mapGetters的方式获取store里面的count {{getCount}}
+    <div>
+      通过mapActions触发actions <button @click="handleAsyncAdd">增加</button>
+    </div>
+    
+  </div>
+  <script>
+    var getters=mapGetters(['getCount'])
+    var actions=mapActions(['handleAsyncAddCount'])
+    new Vue({
+      el: "#app",
+      data: {
+        count: 999,
+        getters:{}
+      },
+      computed: getters,
+      methods:Object.assign( {
+        handleAdd() {
+          this.$store.commit('handleAddCount', 999)
+          console.log(this.$store);
+        },
+        handleAsyncAdd:function(){
+          this.handleAsyncAddCount()
+        }
+      },actions),
+      created() {
+        
+      },
+    })
+  </script>
+</body>
+
+</html>
