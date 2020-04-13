@@ -162,16 +162,19 @@
     
   </div>
   <script>
-    var getters=mapGetters(['getCount'])
-    var actions=mapActions(['handleAsyncAddCount'])
+   // var getters=mapGetters(['getCount'])
+   // var actions=mapActions(['handleAsyncAddCount'])
     new Vue({
       el: "#app",
       data: {
         count: 999,
         getters:{}
       },
-      computed: getters,
-      methods:Object.assign( {
+      computed:{
+        ...mapGetters(['getCount'])
+      },
+      methods:{
+        ...mapActions(['handleAsyncAddCount']),
         handleAdd() {
           this.$store.commit('handleAddCount', 999)
           console.log(this.$store);
@@ -179,7 +182,7 @@
         handleAsyncAdd:function(){
           this.handleAsyncAddCount()
         }
-      },actions),
+      },
       created() {
         
       },
